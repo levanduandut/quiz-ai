@@ -39,6 +39,11 @@ export default function AdminPage() {
   const [lb, setLb] = useState<LbEntry[]>([]);
   const [lbFilter, setLbFilter] = useState("all");
 
+  // Change PIN state
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [currentPinInput, setCurrentPinInput] = useState("");
+  const [newPinInput, setNewPinInput] = useState("");
+
   const subjectMap: Record<string, string> = { math: "To\u00e1n", vietnamese: "Ti\u1ebfng Vi\u1ec7t", english: "Ti\u1ebfng Anh", teacher: "B\u00e0i t\u1eadp GV" };
 
   useEffect(() => {
@@ -97,22 +102,22 @@ export default function AdminPage() {
   };
 
   const handleChangePin = async () => {
-    const currentPin = prompt("Nh\u1eadp m\u00e3 PIN hi\u1ec7n t\u1ea1i:");
-    if (!currentPin) return;
-    const newPin = prompt("Nh\u1eadp m\u00e3 PIN m\u1edbi (4 s\u1ed1):");
-    if (!newPin || !/^\d{4}$/.test(newPin)) {
-      if (newPin) alert("PIN ph\u1ea3i l\u00e0 4 ch\u1eef s\u1ed1!");
+    if (!/^\d{4}$/.test(newPinInput)) {
+      alert("PIN mới phải là 4 chữ số!");
       return;
     }
     const res = await fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "change-pin", currentPin, newPin }),
+      body: JSON.stringify({ action: "change-pin", currentPin: currentPinInput, newPin: newPinInput }),
     });
     if (res.ok) {
-      alert("\u0110\u00e3 \u0111\u1ed5i PIN!");
+      alert("Đã đổi PIN!");
+      setShowPinModal(false);
+      setCurrentPinInput("");
+      setNewPinInput("");
     } else {
-      alert("Sai PIN hi\u1ec7n t\u1ea1i!");
+      alert("Sai PIN hiện tại!");
     }
   };
 
@@ -259,14 +264,14 @@ export default function AdminPage() {
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-700 mb-2">{"Qu\u1ea3n l\u00fd gi\u00e1o vi\u00ean"}</h1>
-          <p className="text-gray-400 text-sm mb-6">{"Nh\u1eadp m\u00e3 PIN \u0111\u1ec3 truy c\u1eadp (m\u1eb7c \u0111\u1ecbnh: 1234)"}</p>
+          <h1 className="text-2xl font-bold text-gray-700 mb-2">Giáo viên</h1>
+          <p className="text-gray-400 text-sm mb-6">Nhập mã PIN để truy cập</p>
           <input
             type="password"
             value={adminPin}
             onChange={(e) => setAdminPin(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdminLogin()}
-            placeholder="M\u00e3 PIN"
+            placeholder="Mã PIN"
             className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-400 outline-none text-lg text-center tracking-widest mb-4"
             maxLength={4}
           />
@@ -286,7 +291,7 @@ export default function AdminPage() {
     <main className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 p-4">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="text-center pt-4 pb-2">
-          <h1 className="text-3xl font-extrabold text-purple-600">{"Qu\u1ea3n l\u00fd gi\u00e1o vi\u00ean"}</h1>
+          <h1 className="text-3xl font-extrabold text-purple-600">Giáo viên</h1>
           <a href="/" className="text-sm text-purple-400 underline">{"\u2190 V\u1ec1 trang ch\u1ee7"}</a>
         </div>
 
@@ -572,16 +577,61 @@ export default function AdminPage() {
 
         {/* Settings */}
         <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-lg font-bold text-gray-700 mb-4">{"C\u00e0i \u0111\u1eb7t"}</h2>
+          <h2 className="text-lg font-bold text-gray-700 mb-4">Cài đặt</h2>
           <button
             type="button"
-            onClick={handleChangePin}
+            onClick={() => setShowPinModal(true)}
             className="w-full py-3 rounded-xl font-bold text-purple-600 bg-purple-50 cursor-pointer mb-3"
           >
-            {"\u0110\u1ed5i m\u00e3 PIN qu\u1ea3n tr\u1ecb"}
+            Đổi mã PIN quản trị
           </button>
         </div>
       </div>
+
+      {/* PIN Modal */}
+      {showPinModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowPinModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-700 mb-4 text-center">Đổi mã PIN</h2>
+            <div className="space-y-3">
+              <input
+                type="password"
+                value={currentPinInput}
+                onChange={(e) => setCurrentPinInput(e.target.value)}
+                placeholder="PIN hiện tại"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-400 outline-none text-center tracking-widest"
+                maxLength={4}
+                inputMode="numeric"
+              />
+              <input
+                type="password"
+                value={newPinInput}
+                onChange={(e) => setNewPinInput(e.target.value)}
+                placeholder="PIN mới (4 số)"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-400 outline-none text-center tracking-widest"
+                maxLength={4}
+                inputMode="numeric"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowPinModal(false); setCurrentPinInput(""); setNewPinInput(""); }}
+                  className="flex-1 py-3 rounded-xl font-bold text-gray-500 bg-gray-100 cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleChangePin}
+                  className="flex-1 py-3 rounded-xl font-bold text-white bg-purple-600 cursor-pointer"
+                >
+                  Đổi PIN
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Modal */}
       {showQrModal && (

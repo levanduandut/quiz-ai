@@ -103,9 +103,11 @@ export default function Home() {
   const [needsPassword, setNeedsPassword] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>([]);
+  const [siteUrl, setSiteUrl] = useState("");
 
   useEffect(() => {
     setMounted(true);
+    setSiteUrl(window.location.origin);
 
     // Check if already authenticated this session
     if (sessionStorage.getItem("quiz-authenticated") === "true") {
@@ -240,9 +242,9 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 relative">
       {/* QR nh\u1ecf g\u00f3c tr\u00e1i */}
       <div className="fixed bottom-4 left-4 z-40 bg-white rounded-xl shadow-lg p-2 cursor-pointer group">
-        <QRCodeSVG value={typeof window !== "undefined" ? window.location.origin : ""} size={48} />
+        <QRCodeSVG value={siteUrl} size={48} />
         <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-xl p-3">
-          <QRCodeSVG value={typeof window !== "undefined" ? window.location.origin : ""} size={150} />
+          <QRCodeSVG value={siteUrl} size={150} />
           <p className="text-xs text-gray-400 mt-1 text-center">{"Qu\u00e9t \u0111\u1ec3 v\u00e0o ch\u01a1i"}</p>
         </div>
       </div>
