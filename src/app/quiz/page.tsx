@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
 interface Question {
   question: string;
@@ -45,7 +45,7 @@ export default function QuizPage() {
     }
   }, [router]);
 
-  const handleNext = useCallback(() => {
+  const handleNext = () => {
     if (current < questions.length - 1) {
       setCurrent((c) => c + 1);
       setSelected(null);
@@ -57,7 +57,7 @@ export default function QuizPage() {
       }));
       router.push("/result");
     }
-  }, [current, questions, score, answers, player, subject, grade, topic, router]);
+  };
 
   useEffect(() => {
     if (showResult || questions.length === 0) return;

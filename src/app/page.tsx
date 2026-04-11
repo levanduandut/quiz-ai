@@ -102,6 +102,7 @@ export default function Home() {
   const [authenticated, setAuthenticated] = useState(false);
   const [needsPassword, setNeedsPassword] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>([]);
   const [siteUrl, setSiteUrl] = useState("");
 
@@ -185,6 +186,7 @@ export default function Home() {
     : [];
 
   const handlePasswordSubmit = async () => {
+    setPasswordLoading(true);
     try {
       const res = await fetch("/api/settings", {
         method: "POST",
@@ -196,10 +198,12 @@ export default function Home() {
         setAuthenticated(true);
         sessionStorage.setItem("quiz-authenticated", "true");
       } else {
-        alert("Sai m\u1eadt kh\u1ea9u!");
+        alert("Sai mật khẩu!");
       }
     } catch {
-      alert("L\u1ed7i k\u1ebft n\u1ed1i!");
+      alert("Lỗi kết nối!");
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -227,9 +231,10 @@ export default function Home() {
           <button
             type="button"
             onClick={handlePasswordSubmit}
-            className="w-full py-3 rounded-xl font-bold text-white bg-purple-600 cursor-pointer"
+            disabled={passwordLoading}
+            className="w-full py-3 rounded-xl font-bold text-white bg-purple-600 cursor-pointer disabled:opacity-50"
           >
-            {"V\u00e0o ch\u01a1i"}
+            {passwordLoading ? "Đang kiểm tra..." : "Vào chơi"}
           </button>
         </div>
       </main>

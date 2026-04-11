@@ -44,6 +44,13 @@ export default function AdminPage() {
   const [currentPinInput, setCurrentPinInput] = useState("");
   const [newPinInput, setNewPinInput] = useState("");
 
+  // Loading states
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [changingPin, setChangingPin] = useState(false);
+
   const subjectMap: Record<string, string> = { math: "To\u00e1n", vietnamese: "Ti\u1ebfng Vi\u1ec7t", english: "Ti\u1ebfng Anh", teacher: "B\u00e0i t\u1eadp GV" };
 
   useEffect(() => {
@@ -58,6 +65,7 @@ export default function AdminPage() {
   };
 
   const handleAdminLogin = async () => {
+    setLoginLoading(true);
     try {
       const res = await fetch("/api/settings", {
         method: "POST",
@@ -69,26 +77,33 @@ export default function AdminPage() {
         setAdminLoggedIn(true);
         loadData();
       } else {
-        alert("Sai m\u00e3 PIN!");
+        alert("Sai mã PIN!");
       }
     } catch {
-      alert("L\u1ed7i k\u1ebft n\u1ed1i!");
+      alert("Lỗi kết nối!");
+    } finally {
+      setLoginLoading(false);
     }
   };
 
   const handleSetPassword = async () => {
     if (!newPassword.trim()) {
-      alert("Vui l\u00f2ng nh\u1eadp m\u1eadt kh\u1ea9u!");
+      alert("Vui lòng nhập mật khẩu!");
       return;
     }
-    await fetch("/api/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "set-password", password: newPassword.trim() }),
-    });
-    setClassPassword(newPassword.trim());
-    setNewPassword("");
-    alert("\u0110\u00e3 c\u1eadp nh\u1eadt m\u1eadt kh\u1ea9u!");
+    setSavingPassword(true);
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set-password", password: newPassword.trim() }),
+      });
+      setClassPassword(newPassword.trim());
+      setNewPassword("");
+      alert("Đã cập nhật mật khẩu!");
+    } finally {
+      setSavingPassword(false);
+    }
   };
 
   const handleRemovePassword = async () => {
@@ -106,18 +121,23 @@ export default function AdminPage() {
       alert("PIN mới phải là 4 chữ số!");
       return;
     }
-    const res = await fetch("/api/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "change-pin", currentPin: currentPinInput, newPin: newPinInput }),
-    });
-    if (res.ok) {
-      alert("Đã đổi PIN!");
-      setShowPinModal(false);
-      setCurrentPinInput("");
-      setNewPinInput("");
-    } else {
-      alert("Sai PIN hiện tại!");
+    setChangingPin(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "change-pin", currentPin: currentPinInput, newPin: newPinInput }),
+      });
+      if (res.ok) {
+        alert("Đã đổi PIN!");
+        setShowPinModal(false);
+        setCurrentPinInput("");
+        setNewPinInput("");
+      } else {
+        alert("Sai PIN hiện tại!");
+      }
+    } finally {
+      setChangingPin(false);
     }
   };
 
@@ -133,10 +153,11 @@ export default function AdminPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setImporting(true);
     try {
       const questions = await parseExcelToQuestions(file);
       if (questions.length === 0) {
-        alert("Kh\u00f4ng t\u00ecm th\u1ea5y c\u00e2u h\u1ecfi h\u1ee3p l\u1ec7. Vui l\u00f2ng ki\u1ec3m tra l\u1ea1i file Excel.");
+        alert("Không tìm thấy câu hỏi hợp lệ. Vui lòng kiểm tra lại file Excel.");
         return;
       }
 
@@ -157,9 +178,11 @@ export default function AdminPage() {
       const res = await fetch("/api/exercises");
       setExerciseSets(await res.json());
       setNewSetName("");
-      alert(`\u0110\u00e3 import ${questions.length} c\u00e2u h\u1ecfi!`);
+      alert(`Đã import ${questions.length} câu hỏi!`);
     } catch {
-      alert("L\u1ed7i khi \u0111\u1ecdc file Excel!");
+      alert("Lỗi khi đọc file Excel!");
+    } finally {
+      setImporting(false);
     }
 
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -223,19 +246,24 @@ export default function AdminPage() {
     if (!editingSet) return;
     const valid = editingSet.questions.filter(q => q.question.trim() && q.options.every(o => o.trim()));
     if (valid.length === 0) {
-      alert("C\u1ea7n \u00edt nh\u1ea5t 1 c\u00e2u h\u1ecfi h\u1ee3p l\u1ec7!");
+      alert("Cần ít nhất 1 câu hỏi hợp lệ!");
       return;
     }
-    const toSave = { ...editingSet, questions: valid };
-    await fetch("/api/exercises", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(toSave),
-    });
-    const res = await fetch("/api/exercises");
-    setExerciseSets(await res.json());
-    setEditingSet(null);
-    alert("\u0110\u00e3 l\u01b0u!");
+    setSavingEdit(true);
+    try {
+      const toSave = { ...editingSet, questions: valid };
+      await fetch("/api/exercises", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(toSave),
+      });
+      const res = await fetch("/api/exercises");
+      setExerciseSets(await res.json());
+      setEditingSet(null);
+      alert("Đã lưu!");
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   // Leaderboard filter
@@ -282,9 +310,10 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={handleAdminLogin}
-            className="w-full py-3 rounded-xl font-bold text-white bg-purple-600 cursor-pointer"
+            disabled={loginLoading}
+            className="w-full py-3 rounded-xl font-bold text-white bg-purple-600 cursor-pointer disabled:opacity-50"
           >
-            {"\u0110\u0103ng nh\u1eadp"}
+            {loginLoading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </div>
       </main>
@@ -351,9 +380,10 @@ export default function AdminPage() {
             <button
               type="button"
               onClick={handleSetPassword}
-              className="px-5 py-3 rounded-xl font-bold text-white bg-purple-600 cursor-pointer"
+              disabled={savingPassword}
+              className="px-5 py-3 rounded-xl font-bold text-white bg-purple-600 cursor-pointer disabled:opacity-50"
             >
-              {"\u0110\u1eb7t"}
+              {savingPassword ? "..." : "Đặt"}
             </button>
           </div>
           {classPassword && (
@@ -392,9 +422,10 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex-1 py-2 rounded-lg font-bold text-sm text-white bg-purple-600 cursor-pointer"
+                disabled={importing}
+                className="flex-1 py-2 rounded-lg font-bold text-sm text-white bg-purple-600 cursor-pointer disabled:opacity-50"
               >
-                {"Ch\u1ecdn file Excel"}
+                {importing ? "Đang import..." : "Chọn file Excel"}
               </button>
               <button
                 type="button"
@@ -506,9 +537,10 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={handleSaveEdit}
-                          className="flex-1 py-2 rounded-lg text-sm font-bold text-white bg-purple-600 cursor-pointer"
+                          disabled={savingEdit}
+                          className="flex-1 py-2 rounded-lg text-sm font-bold text-white bg-purple-600 cursor-pointer disabled:opacity-50"
                         >
-                          {"L\u01b0u thay \u0111\u1ed5i"}
+                          {savingEdit ? "Đang lưu..." : "Lưu thay đổi"}
                         </button>
                       </div>
                     </div>
@@ -625,9 +657,10 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={handleChangePin}
-                  className="flex-1 py-3 rounded-xl font-bold text-white bg-purple-600 cursor-pointer"
+                  disabled={changingPin}
+                  className="flex-1 py-3 rounded-xl font-bold text-white bg-purple-600 cursor-pointer disabled:opacity-50"
                 >
-                  Đổi PIN
+                  {changingPin ? "Đang đổi..." : "Đổi PIN"}
                 </button>
               </div>
             </div>
