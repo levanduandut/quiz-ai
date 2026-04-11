@@ -1,45 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readData, writeData } from "@/lib/storage";
+import { getSettings, saveSettings } from "@/lib/storage";
 
-// GET: check if password is set (don't return actual password)
 export async function GET() {
-  const data = readData();
+  const settings = await getSettings();
   return NextResponse.json({
-    hasPassword: !!data.classPassword,
-    classPassword: data.classPassword,
+    hasPassword: !!settings.classPassword,
+    classPassword: settings.classPassword,
   });
 }
 
-// POST: various actions
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const data = readData();
+  const settings = await getSettings();
 
   switch (body.action) {
     case "verify-password": {
-      const valid = !data.classPassword || body.password === data.classPassword;
+      const valid = !settings.classPassword || body.password === settings.classPassword;
       return NextResponse.json({ valid });
     }
     case "set-password": {
-      data.classPassword = body.password || "";
-      writeData(data);
+      settings.classPassword = body.password || "";
+      await saveSettings(settings);
       return NextResponse.json({ ok: true });
     }
     case "remove-password": {
-      data.classPassword = "";
-      writeData(data);
+      settings.classPassword = "";
+      await saveSettings(settings);
       return NextResponse.json({ ok: true });
     }
     case "verify-pin": {
-      const valid = body.pin === (data.adminPin || "1234");
+      const valid = body.pin === (settings.adminPin || "1234");
       return NextResponse.json({ valid });
     }
     case "change-pin": {
-      if (body.currentPin !== (data.adminPin || "1234")) {
+      if (body.currentPin !== (settings.adminPin || "1234")) {
         return NextResponse.json({ error: "Sai PIN" }, { status: 403 });
       }
-      data.adminPin = body.newPin;
-      writeData(data);
+      settings.adminPin = body.newPin;
+      await saveSettings(settings);
       return NextResponse.json({ ok: true });
     }
     default:

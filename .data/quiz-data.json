@@ -1,0 +1,47 @@
+{
+  "classPassword": "1234",
+  "adminPin": "1234",
+  "exercises": [
+    {
+      "id": "71d13460-0976-4a14-ad19-163fc560fe2f",
+      "name": "quiz-template",
+      "createdAt": "2026-04-11T03:24:01.245Z",
+      "questions": [
+        {
+          "question": "2 + 3 = ?",
+          "options": [
+            "A. 4",
+            "B. 5",
+            "C. 6",
+            "D. 7"
+          ],
+          "correct": 1,
+          "explanation": "Vi 2 cong 3 bang 5"
+        },
+        {
+          "question": "Thu do Viet Nam la gi?",
+          "options": [
+            "A. Ha Noi",
+            "B. TP HCM",
+            "C. Da Nang",
+            "D. Hue"
+          ],
+          "correct": 0,
+          "explanation": "Ha Noi la thu do"
+        }
+      ]
+    }
+  ],
+  "leaderboard": [
+    {
+      "player": "Mư",
+      "score": 40,
+      "correctCount": 2,
+      "total": 2,
+      "subject": "teacher",
+      "grade": "",
+      "topic": "quiz-template",
+      "date": "2026-04-11T03:24:38.077Z"
+    }
+  ]
+}

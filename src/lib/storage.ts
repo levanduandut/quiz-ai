@@ -1,15 +1,9 @@
-import fs from "fs";
-import path from "path";
+import { Redis } from "@upstash/redis";
 
-const DATA_DIR = path.join(process.cwd(), ".data");
-const DATA_FILE = path.join(DATA_DIR, "quiz-data.json");
-
-interface AppData {
-  classPassword: string;
-  adminPin: string;
-  exercises: ExerciseSet[];
-  leaderboard: LeaderboardEntry[];
-}
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
 export interface ExerciseSet {
   id: string;
@@ -36,30 +30,38 @@ export interface LeaderboardEntry {
   date: string;
 }
 
-const DEFAULT_DATA: AppData = {
-  classPassword: "",
-  adminPin: "1234",
-  exercises: [],
-  leaderboard: [],
-};
+// --- Exercises ---
 
-function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+export async function getExercises(): Promise<ExerciseSet[]> {
+  return (await redis.get<ExerciseSet[]>("exercises")) || [];
 }
 
-export function readData(): AppData {
-  ensureDir();
-  try {
-    const raw = fs.readFileSync(DATA_FILE, "utf-8");
-    return { ...DEFAULT_DATA, ...JSON.parse(raw) };
-  } catch {
-    return { ...DEFAULT_DATA };
-  }
+export async function saveExercises(exercises: ExerciseSet[]): Promise<void> {
+  await redis.set("exercises", exercises);
 }
 
-export function writeData(data: AppData): void {
-  ensureDir();
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
+// --- Leaderboard ---
+
+export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+  return (await redis.get<LeaderboardEntry[]>("leaderboard")) || [];
+}
+
+export async function saveLeaderboard(lb: LeaderboardEntry[]): Promise<void> {
+  await redis.set("leaderboard", lb);
+}
+
+// --- Settings ---
+
+interface Settings {
+  classPassword: string;
+  adminPin: string;
+}
+
+export async function getSettings(): Promise<Settings> {
+  const s = await redis.get<Settings>("settings");
+  return s || { classPassword: "", adminPin: "1234" };
+}
+
+export async function saveSettings(settings: Settings): Promise<void> {
+  await redis.set("settings", settings);
 }

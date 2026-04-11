@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readData, writeData } from "@/lib/storage";
+import { getLeaderboard, saveLeaderboard } from "@/lib/storage";
 
 export async function GET() {
-  const data = readData();
-  return NextResponse.json(data.leaderboard);
+  const lb = await getLeaderboard();
+  return NextResponse.json(lb);
 }
 
 export async function POST(req: NextRequest) {
   const entry = await req.json();
-  const data = readData();
+  const lb = await getLeaderboard();
 
-  const existingIndex = data.leaderboard.findIndex(
+  const existingIndex = lb.findIndex(
     (e) =>
       e.player === entry.player &&
       e.subject === entry.subject &&
@@ -20,23 +20,19 @@ export async function POST(req: NextRequest) {
   );
 
   if (existingIndex >= 0) {
-    if (entry.score > data.leaderboard[existingIndex].score) {
-      data.leaderboard[existingIndex] = entry;
+    if (entry.score > lb[existingIndex].score) {
+      lb[existingIndex] = entry;
     }
   } else {
-    data.leaderboard.push(entry);
+    lb.push(entry);
   }
 
-  data.leaderboard.sort((a, b) => b.score - a.score);
-  data.leaderboard = data.leaderboard.slice(0, 100);
-
-  writeData(data);
+  lb.sort((a, b) => b.score - a.score);
+  await saveLeaderboard(lb.slice(0, 100));
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE() {
-  const data = readData();
-  data.leaderboard = [];
-  writeData(data);
+  await saveLeaderboard([]);
   return NextResponse.json({ ok: true });
 }
