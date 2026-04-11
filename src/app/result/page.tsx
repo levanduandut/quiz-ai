@@ -200,6 +200,10 @@ export default function ResultPage() {
           </div>
         )}
       </div>
+
+      <footer className="text-center py-8 text-sm text-gray-500">
+        © Quiz AI.Built by Nguyen Thi Hoang Ngan.
+      </footer>
     </main>
   );
 }

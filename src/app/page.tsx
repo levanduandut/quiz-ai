@@ -240,18 +240,18 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 relative">
-      {/* QR nh\u1ecf g\u00f3c tr\u00e1i */}
-      <div className="fixed bottom-4 left-4 z-40 bg-white rounded-xl shadow-lg p-2 cursor-pointer group">
+      {/* QR nhỏ góc trái */}
+      <div className="fixed top-4 left-4 z-40 bg-white rounded-xl shadow-lg p-2 cursor-pointer group">
         <QRCodeSVG value={siteUrl} size={48} />
-        <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-xl p-3">
+        <div className="hidden group-hover:block absolute top-full left-0 mt-2 bg-white rounded-xl shadow-xl p-3">
           <QRCodeSVG value={siteUrl} size={150} />
-          <p className="text-xs text-gray-400 mt-1 text-center">{"Qu\u00e9t \u0111\u1ec3 v\u00e0o ch\u01a1i"}</p>
+          <p className="text-xs text-gray-400 mt-1 text-center">Quét để vào chơi</p>
         </div>
       </div>
 
-      {/* Link admin g\u00f3c ph\u1ea3i */}
-      <a href="/admin" className="fixed bottom-4 right-4 z-40 bg-white rounded-xl shadow-lg px-3 py-2 text-xs text-gray-400 hover:text-purple-600">
-        {"\u2699 Gi\u00e1o vi\u00ean"}
+      {/* Link admin góc phải */}
+      <a href="/admin" className="fixed top-4 right-4 z-40 bg-white rounded-xl shadow-lg px-3 py-2 text-xs text-gray-400 hover:text-purple-600">
+        {"⚙ Giáo viên"}
       </a>
 
       <div className="text-center pt-8 pb-4 px-4">
@@ -426,6 +426,10 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <footer className="text-center py-8 text-sm text-gray-500">
+        © Quiz AI.Built by Nguyen Thi Hoang Ngan.
+      </footer>
     </main>
   );
 }

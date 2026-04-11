@@ -52,9 +52,9 @@ export default function AdminPage() {
   }, []);
 
   const loadData = () => {
-    fetch("/api/exercises").then((r) => r.json()).then(setExerciseSets).catch(() => {});
-    fetch("/api/leaderboard").then((r) => r.json()).then(setLb).catch(() => {});
-    fetch("/api/settings").then((r) => r.json()).then((d) => setClassPassword(d.classPassword || "")).catch(() => {});
+    fetch("/api/exercises").then((r) => r.json()).then(setExerciseSets).catch(() => { });
+    fetch("/api/leaderboard").then((r) => r.json()).then(setLb).catch(() => { });
+    fetch("/api/settings").then((r) => r.json()).then((d) => setClassPassword(d.classPassword || "")).catch(() => { });
   };
 
   const handleAdminLogin = async () => {
@@ -176,21 +176,25 @@ export default function AdminPage() {
 
   const handleEditQuestion = (qIndex: number, field: keyof Question, value: string | number | string[]) => {
     if (!editingSet) return;
-    const updated = { ...editingSet, questions: editingSet.questions.map((q, i) => {
-      if (i !== qIndex) return q;
-      return { ...q, [field]: value };
-    })};
+    const updated = {
+      ...editingSet, questions: editingSet.questions.map((q, i) => {
+        if (i !== qIndex) return q;
+        return { ...q, [field]: value };
+      })
+    };
     setEditingSet(updated);
   };
 
   const handleEditOption = (qIndex: number, optIndex: number, value: string) => {
     if (!editingSet) return;
-    const updated = { ...editingSet, questions: editingSet.questions.map((q, i) => {
-      if (i !== qIndex) return q;
-      const newOptions = [...q.options];
-      newOptions[optIndex] = value;
-      return { ...q, options: newOptions };
-    })};
+    const updated = {
+      ...editingSet, questions: editingSet.questions.map((q, i) => {
+        if (i !== qIndex) return q;
+        const newOptions = [...q.options];
+        newOptions[optIndex] = value;
+        return { ...q, options: newOptions };
+      })
+    };
     setEditingSet(updated);
   };
 
@@ -536,9 +540,8 @@ export default function AdminPage() {
                   type="button"
                   key={opt.key}
                   onClick={() => setLbFilter(opt.key)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer ${
-                    lbFilter === opt.key ? "bg-purple-500 text-white" : "bg-gray-100 text-gray-600"
-                  }`}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer ${lbFilter === opt.key ? "bg-purple-500 text-white" : "bg-gray-100 text-gray-600"
+                    }`}
                 >
                   {opt.label}
                 </button>
@@ -550,12 +553,11 @@ export default function AdminPage() {
           ) : (
             <div className="space-y-2">
               {filteredLb.slice(0, 30).map((entry, i) => (
-                <div key={i} className={`flex items-center justify-between p-3 rounded-xl ${
-                  i === 0 ? "bg-yellow-50 border border-yellow-200"
-                  : i === 1 ? "bg-gray-50 border border-gray-200"
-                  : i === 2 ? "bg-orange-50 border border-orange-200"
-                  : "bg-white border border-gray-100"
-                }`}>
+                <div key={i} className={`flex items-center justify-between p-3 rounded-xl ${i === 0 ? "bg-yellow-50 border border-yellow-200"
+                    : i === 1 ? "bg-gray-50 border border-gray-200"
+                      : i === 2 ? "bg-orange-50 border border-orange-200"
+                        : "bg-white border border-gray-100"
+                  }`}>
                   <div className="flex items-center gap-3">
                     <span className="font-bold text-gray-500 w-8 text-center">
                       {i === 0 ? "\u{1F947}" : i === 1 ? "\u{1F948}" : i === 2 ? "\u{1F949}" : `${i + 1}`}
@@ -653,6 +655,10 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      <footer className="text-center py-8 text-sm text-gray-500">
+        © Quiz AI.Built by Nguyen Thi Hoang Ngan.
+      </footer>
     </main>
   );
 }
