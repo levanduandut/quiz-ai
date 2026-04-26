@@ -18,6 +18,7 @@ interface LbEntry {
   subject: string;
   grade: string;
   topic?: string;
+  isTeacher?: boolean;
 }
 
 export default function ResultPage() {
@@ -31,6 +32,7 @@ export default function ResultPage() {
     subject: string;
     grade: string;
     topic: string;
+    isTeacher?: boolean;
   } | null>(null);
   const [leaderboard, setLeaderboard] = useState<LbEntry[]>([]);
 
@@ -49,6 +51,7 @@ export default function ResultPage() {
           subject: d.subject,
           grade: d.grade,
           topic: d.topic,
+          isTeacher: !!d.isTeacher,
           date: new Date().toISOString(),
         };
 
@@ -62,9 +65,9 @@ export default function ResultPage() {
           .then((r) => r.json())
           .then((allLb) => {
             const filtered = allLb.filter((e: LbEntry) =>
-              d.subject === "teacher"
-                ? e.subject === "teacher" && e.topic === d.topic
-                : e.subject === d.subject && e.grade === d.grade,
+              d.isTeacher
+                ? e.isTeacher && e.topic === d.topic
+                : !e.isTeacher && e.subject === d.subject && e.grade === d.grade,
             );
             setLeaderboard(filtered.slice(0, 10));
           })

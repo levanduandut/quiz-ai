@@ -18,6 +18,7 @@ export default function QuizPage() {
   const [subject, setSubject] = useState("");
   const [grade, setGrade] = useState("");
   const [topic, setTopic] = useState("");
+  const [isTeacher, setIsTeacher] = useState(false);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -37,6 +38,7 @@ export default function QuizPage() {
         setSubject(data.subject || "");
         setGrade(String(data.grade || ""));
         setTopic(data.topic || "");
+        setIsTeacher(!!data.isTeacher);
       } else {
         router.push("/");
       }
@@ -53,7 +55,7 @@ export default function QuizPage() {
       setTimeLeft(30);
     } else {
       sessionStorage.setItem("quiz-result", JSON.stringify({
-        score, answers, questions, player, subject, grade, topic,
+        score, answers, questions, player, subject, grade, topic, isTeacher,
       }));
       router.push("/result");
     }

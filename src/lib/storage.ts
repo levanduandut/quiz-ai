@@ -8,6 +8,8 @@ const redis = new Redis({
 export interface ExerciseSet {
   id: string;
   name: string;
+  subject?: string;
+  grade?: string;
   createdAt: string;
   questions: Question[];
 }
@@ -27,6 +29,7 @@ export interface LeaderboardEntry {
   subject: string;
   grade: string;
   topic?: string;
+  isTeacher?: boolean;
   date: string;
 }
 

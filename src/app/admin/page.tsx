@@ -17,6 +17,7 @@ interface LbEntry {
   subject: string;
   grade: string;
   topic?: string;
+  isTeacher?: boolean;
   date?: string;
 }
 
@@ -33,11 +34,16 @@ export default function AdminPage() {
   const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>([]);
   const [editingSet, setEditingSet] = useState<ExerciseSet | null>(null);
   const [newSetName, setNewSetName] = useState("");
+  const [newSetSubject, setNewSetSubject] = useState("");
+  const [newSetGrade, setNewSetGrade] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Leaderboard state
   const [lb, setLb] = useState<LbEntry[]>([]);
-  const [lbFilter, setLbFilter] = useState("all");
+  const [lbTypeFilter, setLbTypeFilter] = useState("all");
+  const [lbSubjectFilter, setLbSubjectFilter] = useState("all");
+  const [lbGradeFilter, setLbGradeFilter] = useState("all");
+  const [lbNameFilter, setLbNameFilter] = useState("");
 
   // Change PIN state
   const [showPinModal, setShowPinModal] = useState(false);
@@ -51,7 +57,7 @@ export default function AdminPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [changingPin, setChangingPin] = useState(false);
 
-  const subjectMap: Record<string, string> = { math: "To\u00e1n", vietnamese: "Ti\u1ebfng Vi\u1ec7t", english: "Ti\u1ebfng Anh", teacher: "B\u00e0i t\u1eadp GV" };
+  const subjectMap: Record<string, string> = { math: "Toán", vietnamese: "Tiếng Việt", english: "Tiếng Anh", teacher: "Bài tập GV" };
 
   useEffect(() => {
     setMounted(true);
@@ -153,6 +159,17 @@ export default function AdminPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!newSetSubject) {
+      alert("Vui lòng chọn môn học!");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    if (!newSetGrade) {
+      alert("Vui lòng chọn lớp!");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     setImporting(true);
     try {
       const questions = await parseExcelToQuestions(file);
@@ -165,6 +182,8 @@ export default function AdminPage() {
       const newSet = {
         id: crypto.randomUUID(),
         name,
+        subject: newSetSubject,
+        grade: newSetGrade,
         createdAt: new Date().toISOString(),
         questions,
       };
@@ -178,6 +197,8 @@ export default function AdminPage() {
       const res = await fetch("/api/exercises");
       setExerciseSets(await res.json());
       setNewSetName("");
+      setNewSetSubject("");
+      setNewSetGrade("");
       alert(`Đã import ${questions.length} câu hỏi!`);
     } catch {
       alert("Lỗi khi đọc file Excel!");
@@ -267,22 +288,15 @@ export default function AdminPage() {
   };
 
   // Leaderboard filter
-  const lbFilterOptions: { key: string; label: string }[] = [{ key: "all", label: "T\u1ea5t c\u1ea3" }];
-  const lbSeen = new Set<string>();
-  for (const entry of lb) {
-    const key = entry.subject === "teacher" ? `teacher:${entry.topic || ""}` : `${entry.subject}:${entry.grade}`;
-    if (!lbSeen.has(key)) {
-      lbSeen.add(key);
-      if (entry.subject === "teacher") {
-        lbFilterOptions.push({ key, label: entry.topic || "B\u00e0i t\u1eadp GV" });
-      } else {
-        lbFilterOptions.push({ key, label: `${subjectMap[entry.subject] || entry.subject} L${entry.grade}` });
-      }
-    }
-  }
-  const filteredLb = lbFilter === "all" ? lb : lb.filter((e) => {
-    const key = e.subject === "teacher" ? `teacher:${e.topic || ""}` : `${e.subject}:${e.grade}`;
-    return key === lbFilter;
+  const filteredLb = lb.filter((e) => {
+    const isTeacherEntry = e.isTeacher || e.subject === "teacher";
+    const matchType =
+      lbTypeFilter === "all" ||
+      (lbTypeFilter === "teacher" ? isTeacherEntry : !isTeacherEntry);
+    const matchSubject = lbSubjectFilter === "all" || e.subject === lbSubjectFilter;
+    const matchGrade = lbGradeFilter === "all" || e.grade === lbGradeFilter;
+    const matchName = !lbNameFilter.trim() || e.player.toLowerCase().includes(lbNameFilter.trim().toLowerCase());
+    return matchType && matchSubject && matchGrade && matchName;
   });
 
   if (!mounted) return null;
@@ -408,9 +422,33 @@ export default function AdminPage() {
               type="text"
               value={newSetName}
               onChange={(e) => setNewSetName(e.target.value)}
-              placeholder={"T\u00ean b\u00e0i t\u1eadp (VD: To\u00e1n Ch\u01b0\u01a1ng 3)..."}
+              placeholder="Tên bài tập (VD: Toán Chương 3)..."
               className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm mb-2"
             />
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <select
+                value={newSetSubject}
+                onChange={(e) => setNewSetSubject(e.target.value)}
+                className="px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white"
+              >
+                <option value="">— Chọn môn —</option>
+                <option value="math">Toán</option>
+                <option value="vietnamese">Tiếng Việt</option>
+                <option value="english">Tiếng Anh</option>
+              </select>
+              <select
+                value={newSetGrade}
+                onChange={(e) => setNewSetGrade(e.target.value)}
+                className="px-4 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white"
+              >
+                <option value="">— Chọn lớp —</option>
+                <option value="1">Lớp 1</option>
+                <option value="2">Lớp 2</option>
+                <option value="3">Lớp 3</option>
+                <option value="4">Lớp 4</option>
+                <option value="5">Lớp 5</option>
+              </select>
+            </div>
             <div className="flex gap-2">
               <input
                 ref={fileInputRef}
@@ -450,7 +488,9 @@ export default function AdminPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-bold text-gray-700">{set.name}</p>
-                      <p className="text-xs text-gray-400">{set.questions.length} {"c\u00e2u h\u1ecfi"} &middot; {new Date(set.createdAt).toLocaleDateString("vi-VN")}</p>
+                      <p className="text-xs text-gray-400">
+                        {subjectMap[set.subject || ""] || ""}{set.grade ? ` · Lớp ${set.grade}` : ""}{set.subject || set.grade ? " · " : ""}{set.questions.length} câu · {new Date(set.createdAt).toLocaleDateString("vi-VN")}
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -479,6 +519,30 @@ export default function AdminPage() {
                         onChange={(e) => setEditingSet({ ...editingSet, name: e.target.value })}
                         className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm font-bold"
                       />
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={editingSet.subject || ""}
+                          onChange={(e) => setEditingSet({ ...editingSet, subject: e.target.value || undefined })}
+                          className="px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white"
+                        >
+                          <option value="">— Chọn môn —</option>
+                          <option value="math">Toán</option>
+                          <option value="vietnamese">Tiếng Việt</option>
+                          <option value="english">Tiếng Anh</option>
+                        </select>
+                        <select
+                          value={editingSet.grade || ""}
+                          onChange={(e) => setEditingSet({ ...editingSet, grade: e.target.value || undefined })}
+                          className="px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white"
+                        >
+                          <option value="">— Chọn lớp —</option>
+                          <option value="1">Lớp 1</option>
+                          <option value="2">Lớp 2</option>
+                          <option value="3">Lớp 3</option>
+                          <option value="4">Lớp 4</option>
+                          <option value="5">Lớp 5</option>
+                        </select>
+                      </div>
 
                       {editingSet.questions.map((q, qi) => (
                         <div key={qi} className="p-3 bg-white rounded-lg border border-gray-200 space-y-2">
@@ -565,19 +629,48 @@ export default function AdminPage() {
               </button>
             )}
           </div>
-          {lbFilterOptions.length > 1 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {lbFilterOptions.map((opt) => (
-                <button
-                  type="button"
-                  key={opt.key}
-                  onClick={() => setLbFilter(opt.key)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer ${lbFilter === opt.key ? "bg-purple-500 text-white" : "bg-gray-100 text-gray-600"
-                    }`}
+          {lb.length > 0 && (
+            <div className="space-y-2 mb-4">
+              <input
+                type="text"
+                value={lbNameFilter}
+                onChange={(e) => setLbNameFilter(e.target.value)}
+                placeholder="Tìm tên học sinh..."
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm"
+              />
+              <select
+                value={lbTypeFilter}
+                onChange={(e) => setLbTypeFilter(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white font-medium text-gray-700"
+              >
+                <option value="all">Tất cả loại</option>
+                <option value="ai">Bài tập từ AI</option>
+                <option value="teacher">Bài tập từ giáo viên</option>
+              </select>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={lbSubjectFilter}
+                  onChange={(e) => setLbSubjectFilter(e.target.value)}
+                  className="px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white font-medium text-gray-700"
                 >
-                  {opt.label}
-                </button>
-              ))}
+                  <option value="all">Tất cả môn</option>
+                  <option value="math">Toán</option>
+                  <option value="vietnamese">Tiếng Việt</option>
+                  <option value="english">Tiếng Anh</option>
+                </select>
+                <select
+                  value={lbGradeFilter}
+                  onChange={(e) => setLbGradeFilter(e.target.value)}
+                  className="px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white font-medium text-gray-700"
+                >
+                  <option value="all">Tất cả lớp</option>
+                  <option value="1">Lớp 1</option>
+                  <option value="2">Lớp 2</option>
+                  <option value="3">Lớp 3</option>
+                  <option value="4">Lớp 4</option>
+                  <option value="5">Lớp 5</option>
+                </select>
+              </div>
             </div>
           )}
           {filteredLb.length === 0 ? (
@@ -596,7 +689,10 @@ export default function AdminPage() {
                     </span>
                     <div>
                       <span className="font-medium text-gray-700">{entry.player}</span>
-                      <span className="text-xs text-gray-400 ml-2">{subjectMap[entry.subject] || entry.subject}{entry.grade ? ` L${entry.grade}` : ""}</span>
+                      <span className="text-xs text-gray-400 ml-2">
+                        {(entry.isTeacher || entry.subject === "teacher") ? "GV · " : ""}
+                        {subjectMap[entry.subject] || entry.subject}{entry.grade ? ` L${entry.grade}` : ""}
+                      </span>
                     </div>
                   </div>
                   <div className="text-right">

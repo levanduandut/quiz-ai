@@ -13,6 +13,8 @@ export async function POST(req: NextRequest) {
   const set = {
     id: body.id || crypto.randomUUID(),
     name: body.name,
+    subject: body.subject,
+    grade: body.grade,
     createdAt: body.createdAt || new Date().toISOString(),
     questions: body.questions,
   };

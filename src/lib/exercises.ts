@@ -10,6 +10,8 @@ export interface Question {
 export interface ExerciseSet {
   id: string;
   name: string;
+  subject?: string;
+  grade?: string;
   createdAt: string;
   questions: Question[];
 }

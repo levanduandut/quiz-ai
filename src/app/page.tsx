@@ -7,6 +7,8 @@ import { QRCodeSVG } from "qrcode.react";
 interface ExerciseSet {
   id: string;
   name: string;
+  subject?: string;
+  grade?: string;
   createdAt: string;
   questions: { question: string; options: string[]; correct: number; explanation: string }[];
 }
@@ -19,6 +21,7 @@ interface LbEntry {
   subject: string;
   grade: string;
   topic?: string;
+  isTeacher?: boolean;
 }
 
 const MathIcon = () => (
@@ -50,6 +53,14 @@ const TeacherIcon = () => (
   </svg>
 );
 
+const AiIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+    <path d="M12 2a3 3 0 0 0-3 3v1H7a3 3 0 0 0-3 3v1H3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h1v1a3 3 0 0 0 3 3h2v1a3 3 0 0 0 6 0v-1h2a3 3 0 0 0 3-3v-1h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1V9a3 3 0 0 0-3-3h-2V5a3 3 0 0 0-3-3z" />
+    <circle cx="9" cy="11" r="1" fill="currentColor" />
+    <circle cx="15" cy="11" r="1" fill="currentColor" />
+  </svg>
+);
+
 const subjectIcons: Record<string, () => React.JSX.Element> = {
   math: MathIcon,
   vietnamese: VietnameseIcon,
@@ -57,9 +68,9 @@ const subjectIcons: Record<string, () => React.JSX.Element> = {
 };
 
 const subjects = [
-  { id: "math", name: "To\u00e1n", color: "bg-blue-500" },
-  { id: "vietnamese", name: "Ti\u1ebfng Vi\u1ec7t", color: "bg-pink-500" },
-  { id: "english", name: "Ti\u1ebfng Anh", color: "bg-green-500" },
+  { id: "math", name: "Toán", color: "bg-blue-500" },
+  { id: "vietnamese", name: "Tiếng Việt", color: "bg-pink-500" },
+  { id: "english", name: "Tiếng Anh", color: "bg-green-500" },
 ];
 
 const grades = [1, 2, 3, 4, 5];
@@ -105,6 +116,10 @@ export default function Home() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>([]);
   const [siteUrl, setSiteUrl] = useState("");
+  const [source, setSource] = useState<"ai" | "teacher" | null>(null);
+  const [teacherFilter, setTeacherFilter] = useState<string>("all");
+  const [teacherGradeFilter, setTeacherGradeFilter] = useState<string>("all");
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseSet | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -173,10 +188,11 @@ export default function Home() {
     }
     sessionStorage.setItem("quiz-data", JSON.stringify({
       questions: set.questions,
-      subject: "teacher",
-      grade: "",
+      subject: set.subject || "teacher",
+      grade: set.grade || "",
       topic: set.name,
       player: playerName,
+      isTeacher: true,
     }));
     router.push("/quiz");
   };
@@ -285,132 +301,226 @@ export default function Home() {
           />
         </div>
 
-        {/* B\u00e0i t\u1eadp t\u1eeb gi\u00e1o vi\u00ean */}
-        {exerciseSets.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">{"B\u00e0i t\u1eadp t\u1eeb gi\u00e1o vi\u00ean"}</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {exerciseSets.map((set) => (
-                <button
-                  type="button"
-                  key={set.id}
-                  onClick={() => handleStartExercise(set)}
-                  className="p-4 rounded-xl border-2 border-gray-200 bg-white cursor-pointer text-center hover:border-orange-400 hover:bg-orange-50 transition-colors"
-                >
-                  <div className="w-14 h-14 rounded-full bg-orange-500 mx-auto mb-2 flex items-center justify-center text-white">
-                    <TeacherIcon />
-                  </div>
-                  <div className="text-sm font-bold text-gray-700">{set.name}</div>
-                  <div className="text-xs text-gray-400">{set.questions.length} {"c\u00e2u h\u1ecfi"}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
+        {/* Chọn nguồn bài tập */}
         <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">{"Ch\u1ecdn m\u00f4n h\u1ecdc"}</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {subjects.map((s) => (
-              <button
-                type="button"
-                key={s.id}
-                onClick={() => { setSelectedSubject(s.id); setTopic(""); }}
-                className={`p-4 rounded-xl border-2 cursor-pointer text-center ${
-                  selectedSubject === s.id
-                    ? "border-purple-500 bg-purple-50 shadow-lg"
-                    : "border-gray-200 bg-white"
-                }`}
-              >
-                <div className={`w-14 h-14 rounded-full ${s.color} mx-auto mb-2 flex items-center justify-center text-white`}>
-                  {subjectIcons[s.id]()}
-                </div>
-                <div className="text-sm font-bold text-gray-700">{s.name}</div>
-              </button>
-            ))}
+          <h2 className="text-lg font-semibold text-gray-700 mb-4">Chọn nguồn bài tập</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => { setSource("ai"); setSelectedSubject(null); setSelectedGrade(null); setTopic(""); setSelectedExercise(null); }}
+              className={`p-4 rounded-xl border-2 cursor-pointer text-center ${
+                source === "ai" ? "border-purple-500 bg-purple-50 shadow-lg" : "border-gray-200 bg-white"
+              }`}
+            >
+              <div className="w-14 h-14 rounded-full bg-purple-500 mx-auto mb-2 flex items-center justify-center text-white">
+                <AiIcon />
+              </div>
+              <div className="text-sm font-bold text-gray-700">Bài tập từ AI</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSource("teacher")}
+              className={`p-4 rounded-xl border-2 cursor-pointer text-center ${
+                source === "teacher" ? "border-orange-500 bg-orange-50 shadow-lg" : "border-gray-200 bg-white"
+              }`}
+            >
+              <div className="w-14 h-14 rounded-full bg-orange-500 mx-auto mb-2 flex items-center justify-center text-white">
+                <TeacherIcon />
+              </div>
+              <div className="text-sm font-bold text-gray-700">Bài tập từ giáo viên</div>
+            </button>
           </div>
         </div>
 
-        {selectedSubject && (
+        {/* Bài tập từ giáo viên */}
+        {source === "teacher" && (
           <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">{"Ch\u1ecdn l\u1edbp"}</h2>
-            <div className="flex gap-3 justify-center">
-              {grades.map((g) => (
-                <button
-                  type="button"
-                  key={g}
-                  onClick={() => { setSelectedGrade(g); setTopic(""); }}
-                  className={`w-14 h-14 rounded-xl font-bold text-lg cursor-pointer ${
-                    selectedGrade === g
-                      ? "bg-purple-500 text-white shadow-lg"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
+            <h2 className="text-lg font-semibold text-gray-700 mb-4">Chọn bài tập</h2>
+            {exerciseSets.length === 0 ? (
+              <p className="text-gray-400 text-center py-4">Chưa có bài tập nào</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <select
+                    value={teacherFilter}
+                    onChange={(e) => setTeacherFilter(e.target.value)}
+                    className="px-3 py-2 rounded-lg border border-gray-200 focus:border-orange-400 outline-none text-sm bg-white font-medium text-gray-700"
+                  >
+                    <option value="all">Tất cả môn</option>
+                    <option value="math">Toán</option>
+                    <option value="vietnamese">Tiếng Việt</option>
+                    <option value="english">Tiếng Anh</option>
+                  </select>
+                  <select
+                    value={teacherGradeFilter}
+                    onChange={(e) => setTeacherGradeFilter(e.target.value)}
+                    className="px-3 py-2 rounded-lg border border-gray-200 focus:border-orange-400 outline-none text-sm bg-white font-medium text-gray-700"
+                  >
+                    <option value="all">Tất cả lớp</option>
+                    <option value="1">Lớp 1</option>
+                    <option value="2">Lớp 2</option>
+                    <option value="3">Lớp 3</option>
+                    <option value="4">Lớp 4</option>
+                    <option value="5">Lớp 5</option>
+                  </select>
+                </div>
+                {(() => {
+                  const filtered = exerciseSets.filter((s) => {
+                    const matchSubject = teacherFilter === "all" || s.subject === teacherFilter;
+                    const matchGrade = teacherGradeFilter === "all" || s.grade === teacherGradeFilter;
+                    return matchSubject && matchGrade;
+                  });
+                  if (filtered.length === 0) {
+                    return <p className="text-gray-400 text-center py-4">Không có bài tập nào</p>;
+                  }
+                  return (
+                    <div className="grid grid-cols-2 gap-3">
+                      {filtered.map((set) => (
+                        <button
+                          type="button"
+                          key={set.id}
+                          onClick={() => setSelectedExercise(set)}
+                          className={`p-4 rounded-xl border-2 cursor-pointer text-center transition-colors ${
+                            selectedExercise?.id === set.id
+                              ? "border-orange-500 bg-orange-50 shadow-lg"
+                              : "border-gray-200 bg-white hover:border-orange-400 hover:bg-orange-50"
+                          }`}
+                        >
+                          <div className="w-14 h-14 rounded-full bg-orange-500 mx-auto mb-2 flex items-center justify-center text-white">
+                            <TeacherIcon />
+                          </div>
+                          <div className="text-sm font-bold text-gray-700">{set.name}</div>
+                          <div className="text-xs text-gray-400">
+                            {set.grade ? `Lớp ${set.grade} · ` : ""}{set.questions.length} câu
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </>
+            )}
           </div>
         )}
 
-        {selectedSubject && selectedGrade && (
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">{"Ch\u1ee7 \u0111\u1ec1 b\u00e0i h\u1ecdc"}</h2>
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder={"Nh\u1eadp ch\u1ee7 \u0111\u1ec1 ho\u1eb7c ch\u1ecdn g\u1ee3i \u00fd..."}
-              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-400 outline-none text-lg mb-3"
-            />
-            <div className="flex flex-wrap gap-2">
-              {suggestions.map((s) => (
-                <button
-                  type="button"
-                  key={s}
-                  onClick={() => setTopic(s)}
-                  className={`px-3 py-1.5 rounded-full text-sm cursor-pointer ${
-                    topic === s ? "bg-purple-500 text-white" : "bg-purple-50 text-purple-600"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {selectedSubject && selectedGrade && topic && (
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">{"S\u1ed1 c\u00e2u h\u1ecfi"}</h2>
-            <div className="flex flex-wrap gap-3 justify-center">
-              {questionCounts.map((n) => (
-                <button
-                  type="button"
-                  key={n}
-                  onClick={() => setNumQuestions(n)}
-                  className={`w-14 h-14 rounded-xl font-bold text-lg cursor-pointer ${
-                    numQuestions === n
-                      ? "bg-purple-500 text-white shadow-lg"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {selectedSubject && selectedGrade && topic && playerName && (
+        {source === "teacher" && selectedExercise && playerName && (
           <button
             type="button"
-            onClick={handleStart}
-            disabled={loading}
-            className="w-full py-4 rounded-2xl font-bold text-xl text-white bg-purple-600 cursor-pointer disabled:opacity-50"
+            onClick={() => handleStartExercise(selectedExercise)}
+            className="w-full py-4 rounded-2xl font-bold text-xl text-white bg-orange-500 cursor-pointer"
           >
-            {loading ? "AI \u0111ang t\u1ea1o c\u00e2u h\u1ecfi..." : "B\u1eaft \u0111\u1ea7u ch\u01a1i!"}
+            Bắt đầu chơi!
           </button>
+        )}
+
+        {/* Bài tập từ AI */}
+        {source === "ai" && (
+          <>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4">Chọn môn học</h2>
+              <div className="grid grid-cols-3 gap-3">
+                {subjects.map((s) => (
+                  <button
+                    type="button"
+                    key={s.id}
+                    onClick={() => { setSelectedSubject(s.id); setTopic(""); }}
+                    className={`p-4 rounded-xl border-2 cursor-pointer text-center ${
+                      selectedSubject === s.id
+                        ? "border-purple-500 bg-purple-50 shadow-lg"
+                        : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className={`w-14 h-14 rounded-full ${s.color} mx-auto mb-2 flex items-center justify-center text-white`}>
+                      {subjectIcons[s.id]()}
+                    </div>
+                    <div className="text-sm font-bold text-gray-700">{s.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {selectedSubject && (
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h2 className="text-lg font-semibold text-gray-700 mb-4">Chọn lớp</h2>
+                <div className="flex gap-3 justify-center">
+                  {grades.map((g) => (
+                    <button
+                      type="button"
+                      key={g}
+                      onClick={() => { setSelectedGrade(g); setTopic(""); }}
+                      className={`w-14 h-14 rounded-xl font-bold text-lg cursor-pointer ${
+                        selectedGrade === g
+                          ? "bg-purple-500 text-white shadow-lg"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedSubject && selectedGrade && (
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h2 className="text-lg font-semibold text-gray-700 mb-4">Chủ đề bài học</h2>
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="Nhập chủ đề hoặc chọn gợi ý..."
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-400 outline-none text-lg mb-3"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {suggestions.map((s) => (
+                    <button
+                      type="button"
+                      key={s}
+                      onClick={() => setTopic(s)}
+                      className={`px-3 py-1.5 rounded-full text-sm cursor-pointer ${
+                        topic === s ? "bg-purple-500 text-white" : "bg-purple-50 text-purple-600"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedSubject && selectedGrade && topic && (
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h2 className="text-lg font-semibold text-gray-700 mb-4">Số câu hỏi</h2>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  {questionCounts.map((n) => (
+                    <button
+                      type="button"
+                      key={n}
+                      onClick={() => setNumQuestions(n)}
+                      className={`w-14 h-14 rounded-xl font-bold text-lg cursor-pointer ${
+                        numQuestions === n
+                          ? "bg-purple-500 text-white shadow-lg"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedSubject && selectedGrade && topic && playerName && (
+              <button
+                type="button"
+                onClick={handleStart}
+                disabled={loading}
+                className="w-full py-4 rounded-2xl font-bold text-xl text-white bg-purple-600 cursor-pointer disabled:opacity-50"
+              >
+                {loading ? "AI đang tạo câu hỏi..." : "Bắt đầu chơi!"}
+              </button>
+            )}
+          </>
         )}
       </div>
 
@@ -440,9 +550,12 @@ export default function Home() {
 }
 
 function LeaderboardList() {
-  const subjectMap: Record<string, string> = { math: "To\u00e1n", vietnamese: "Ti\u1ebfng Vi\u1ec7t", english: "Ti\u1ebfng Anh", teacher: "B\u00e0i t\u1eadp GV" };
+  const subjectMap: Record<string, string> = { math: "Toán", vietnamese: "Tiếng Việt", english: "Tiếng Anh", teacher: "Bài tập GV" };
   const [lb, setLb] = useState<LbEntry[]>([]);
-  const [filter, setFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [subjectFilter, setSubjectFilter] = useState("all");
+  const [gradeFilter, setGradeFilter] = useState("all");
+  const [nameFilter, setNameFilter] = useState("");
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -455,43 +568,61 @@ function LeaderboardList() {
   if (!loaded) return <p className="text-gray-400 text-center py-8">{"Đang tải..."}</p>;
   if (lb.length === 0) return <p className="text-gray-400 text-center py-8">{"Ch\u01b0a c\u00f3 k\u1ebft qu\u1ea3 n\u00e0o"}</p>;
 
-  const filterOptions: { key: string; label: string }[] = [{ key: "all", label: "T\u1ea5t c\u1ea3" }];
-  const seen = new Set<string>();
-  for (const entry of lb) {
-    const key = entry.subject === "teacher" ? `teacher:${entry.topic || ""}` : `${entry.subject}:${entry.grade}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      if (entry.subject === "teacher") {
-        filterOptions.push({ key, label: entry.topic || "B\u00e0i t\u1eadp GV" });
-      } else {
-        filterOptions.push({ key, label: `${subjectMap[entry.subject] || entry.subject} L${entry.grade}` });
-      }
-    }
-  }
-
-  const filtered = filter === "all" ? lb : lb.filter((e) => {
-    const key = e.subject === "teacher" ? `teacher:${e.topic || ""}` : `${e.subject}:${e.grade}`;
-    return key === filter;
+  const filtered = lb.filter((e) => {
+    const isTeacherEntry = e.isTeacher || e.subject === "teacher";
+    const matchType =
+      typeFilter === "all" ||
+      (typeFilter === "teacher" ? isTeacherEntry : !isTeacherEntry);
+    const matchSubject = subjectFilter === "all" || e.subject === subjectFilter;
+    const matchGrade = gradeFilter === "all" || e.grade === gradeFilter;
+    const matchName = !nameFilter.trim() || e.player.toLowerCase().includes(nameFilter.trim().toLowerCase());
+    return matchType && matchSubject && matchGrade && matchName;
   });
 
   return (
     <div>
-      {filterOptions.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {filterOptions.map((opt) => (
-            <button
-              type="button"
-              key={opt.key}
-              onClick={() => setFilter(opt.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold cursor-pointer ${
-                filter === opt.key ? "bg-purple-500 text-white" : "bg-gray-100 text-gray-600"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+      <div className="space-y-2 mb-4">
+        <input
+          type="text"
+          value={nameFilter}
+          onChange={(e) => setNameFilter(e.target.value)}
+          placeholder="Tìm tên học sinh..."
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm"
+        />
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white font-medium text-gray-700"
+        >
+          <option value="all">Tất cả loại</option>
+          <option value="ai">Bài tập từ AI</option>
+          <option value="teacher">Bài tập từ giáo viên</option>
+        </select>
+        <div className="grid grid-cols-2 gap-2">
+          <select
+            value={subjectFilter}
+            onChange={(e) => setSubjectFilter(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white font-medium text-gray-700"
+          >
+            <option value="all">Tất cả môn</option>
+            <option value="math">Toán</option>
+            <option value="vietnamese">Tiếng Việt</option>
+            <option value="english">Tiếng Anh</option>
+          </select>
+          <select
+            value={gradeFilter}
+            onChange={(e) => setGradeFilter(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white font-medium text-gray-700"
+          >
+            <option value="all">Tất cả lớp</option>
+            <option value="1">Lớp 1</option>
+            <option value="2">Lớp 2</option>
+            <option value="3">Lớp 3</option>
+            <option value="4">Lớp 4</option>
+            <option value="5">Lớp 5</option>
+          </select>
         </div>
-      )}
+      </div>
       {filtered.length === 0 ? (
         <p className="text-gray-400 text-center py-4">{"Ch\u01b0a c\u00f3 k\u1ebft qu\u1ea3"}</p>
       ) : (
@@ -509,7 +640,10 @@ function LeaderboardList() {
                 </span>
                 <div>
                   <span className="font-medium text-gray-700">{entry.player}</span>
-                  <span className="text-xs text-gray-400 ml-2">{subjectMap[entry.subject] || entry.subject}{entry.grade ? ` L${entry.grade}` : ""}</span>
+                  <span className="text-xs text-gray-400 ml-2">
+                    {(entry.isTeacher || entry.subject === "teacher") ? "GV · " : ""}
+                    {subjectMap[entry.subject] || entry.subject}{entry.grade ? ` L${entry.grade}` : ""}
+                  </span>
                 </div>
               </div>
               <div className="text-right">

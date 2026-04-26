@@ -13,10 +13,9 @@ export async function POST(req: NextRequest) {
   const existingIndex = lb.findIndex(
     (e) =>
       e.player === entry.player &&
-      e.subject === entry.subject &&
-      (entry.subject === "teacher"
-        ? e.topic === entry.topic
-        : e.grade === entry.grade),
+      (entry.isTeacher
+        ? e.isTeacher && e.topic === entry.topic
+        : !e.isTeacher && e.subject === entry.subject && e.grade === entry.grade),
   );
 
   if (existingIndex >= 0) {
