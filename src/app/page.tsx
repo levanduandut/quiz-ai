@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 
 interface ExerciseSet {
@@ -122,32 +123,39 @@ export default function Home() {
   const [selectedExercise, setSelectedExercise] = useState<ExerciseSet | null>(null);
 
   useEffect(() => {
-    setMounted(true);
-    setSiteUrl(window.location.origin);
+    const init = () => {
+      setMounted(true);
+      setSiteUrl(window.location.origin);
 
-    // Check if already authenticated this session
-    if (sessionStorage.getItem("quiz-authenticated") === "true") {
-      setAuthenticated(true);
-    }
+      if (sessionStorage.getItem("quiz-authenticated") === "true") {
+        setAuthenticated(true);
+      }
 
-    // Check if password is required
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.hasPassword || sessionStorage.getItem("quiz-authenticated") === "true") {
-          setAuthenticated(true);
-          sessionStorage.setItem("quiz-authenticated", "true");
-        } else {
-          setNeedsPassword(true);
-        }
-      })
-      .catch(() => setAuthenticated(true));
+      fetch("/api/settings")
+        .then((r) => r.json())
+        .then((d) => {
+          if (!d.hasPassword || sessionStorage.getItem("quiz-authenticated") === "true") {
+            setAuthenticated(true);
+            sessionStorage.setItem("quiz-authenticated", "true");
+          } else {
+            setNeedsPassword(true);
+          }
+        })
+        .catch(() => setAuthenticated(true));
 
-    // Load exercises from server
-    fetch("/api/exercises")
-      .then((r) => r.json())
-      .then((sets) => setExerciseSets(sets))
-      .catch(() => {});
+      fetch("/api/exercises")
+        .then((r) => r.json())
+        .then((sets) => setExerciseSets(sets))
+        .catch(() => {});
+    };
+
+    init();
+
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) init();
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
   }, []);
 
   const handleStart = async () => {
@@ -223,7 +231,13 @@ export default function Home() {
     }
   };
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
+        <div className="text-xl text-gray-500">Đang tải...</div>
+      </main>
+    );
+  }
 
   if (!authenticated && needsPassword) {
     return (
@@ -252,12 +266,35 @@ export default function Home() {
           >
             {passwordLoading ? "Đang kiểm tra..." : "Vào chơi"}
           </button>
+
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400">hoặc</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          <Link
+            href="/admin"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-purple-600 bg-purple-50 border border-purple-200 hover:bg-purple-100"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Đăng nhập giáo viên
+          </Link>
         </div>
       </main>
     );
   }
 
-  if (!authenticated) return null;
+  if (!authenticated) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
+        <div className="text-xl text-gray-500">Đang tải...</div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 relative">
@@ -271,9 +308,9 @@ export default function Home() {
       </div>
 
       {/* Link admin góc phải */}
-      <a href="/admin" className="fixed top-4 right-4 z-40 bg-white rounded-xl shadow-lg px-3 py-2 text-xs text-gray-400 hover:text-purple-600">
-        {"⚙ Giáo viên"}
-      </a>
+      <Link href="/admin" className="fixed top-4 right-4 z-40 bg-white rounded-xl shadow-lg px-3 py-2 text-xs text-gray-400 hover:text-purple-600">
+        ⚙ Giáo viên
+      </Link>
 
       <div className="text-center pt-8 pb-4 px-4">
         <h1 className="text-5xl font-extrabold text-purple-600">Quiz AI</h1>
